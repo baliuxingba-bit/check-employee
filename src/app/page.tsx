@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { createEmployee, deleteEmployee } from "./actions";
+import { createEmployee, deleteEmployee, logout } from "./actions";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -28,11 +28,21 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
-      <header>
-        <h1 className="text-2xl font-bold">ビザ・就労資格 期限管理</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          従業員のビザ/就労資格の有効期限を一覧管理します。
-        </p>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">ビザ・就労資格 期限管理</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            従業員のビザ/就労資格の有効期限を一覧管理します。
+          </p>
+        </div>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="text-sm text-gray-400 hover:text-gray-700"
+          >
+            ログアウト
+          </button>
+        </form>
       </header>
 
       <section className="rounded-lg border border-gray-200 p-6">

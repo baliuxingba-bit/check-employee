@@ -2,6 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { deleteSession } from "@/lib/session";
+import { redirect } from "next/navigation";
+
+export async function logout() {
+  await deleteSession();
+  redirect("/login");
+}
 
 export async function createEmployee(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();

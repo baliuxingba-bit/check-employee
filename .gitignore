@@ -45,3 +45,6 @@ next-env.d.ts
 # local sqlite database (contains real employee data — do not commit)
 *.db
 *.db-journal
+
+.vercel
+.env*
