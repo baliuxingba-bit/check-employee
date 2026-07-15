@@ -2,7 +2,7 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const encodedKey = new TextEncoder().encode(process.env.SESSION_SECRET);
+const encodedKey = new TextEncoder().encode(process.env.SESSION_SECRET?.trim());
 
 export async function createSession() {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
