@@ -8,6 +8,7 @@ const PRESET_CATEGORIES = [
   "保険",
   "免許",
   "契約",
+  "健康診断",
   "その他",
 ];
 

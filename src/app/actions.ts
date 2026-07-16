@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { deleteSession } from "@/lib/session";
+import { deleteSession, requireEditor } from "@/lib/session";
 import { redirect } from "next/navigation";
 
 export async function logout() {
@@ -11,6 +11,8 @@ export async function logout() {
 }
 
 export async function createItem(formData: FormData) {
+  await requireEditor();
+
   const categorySelect = String(formData.get("category") ?? "").trim();
   const categoryOther = String(formData.get("categoryOther") ?? "").trim();
   const category = categorySelect === "その他" ? categoryOther : categorySelect;
@@ -38,6 +40,8 @@ export async function createItem(formData: FormData) {
 }
 
 export async function deleteItem(formData: FormData) {
+  await requireEditor();
+
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 

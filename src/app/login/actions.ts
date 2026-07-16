@@ -5,12 +5,18 @@ import { redirect } from "next/navigation";
 
 export async function login(formData: FormData) {
   const password = String(formData.get("password") ?? "").trim();
-  const expected = process.env.APP_PASSWORD?.trim();
+  const editPassword = process.env.APP_PASSWORD?.trim();
+  const viewPassword = process.env.APP_PASSWORD_VIEW?.trim();
 
-  if (!expected || password !== expected) {
-    redirect("/login?error=1");
+  if (editPassword && password === editPassword) {
+    await createSession("editor");
+    redirect("/");
   }
 
-  await createSession();
-  redirect("/");
+  if (viewPassword && password === viewPassword) {
+    await createSession("viewer");
+    redirect("/");
+  }
+
+  redirect("/login?error=1");
 }

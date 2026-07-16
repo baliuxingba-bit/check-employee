@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { createItem, deleteItem, logout } from "./actions";
+import { createItem, deleteItem } from "./actions";
 import { CategoryField } from "./CategoryField";
+import { AppHeader } from "./AppHeader";
+import { verifySession } from "@/lib/session";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -21,82 +23,76 @@ function getStatus(expiryDate: Date | null) {
 }
 
 export default async function Home() {
+  const role = await verifySession();
+  const canEdit = role === "editor";
+
   const items = await prisma.trackedItem.findMany({
     orderBy: [{ expiryDate: "asc" }, { subject: "asc" }],
   });
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">期限管理ツール</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            ビザ・車検・保険・免許・契約など、更新期限があるものを一覧管理します。
-          </p>
-        </div>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="text-sm text-gray-400 hover:text-gray-700"
-          >
-            ログアウト
-          </button>
-        </form>
-      </header>
+      <AppHeader
+        title="期限管理ツール"
+        description="ビザ・車検・保険・免許・契約・健康診断など、更新期限があるものを一覧管理します。"
+        active="deadlines"
+      />
 
-      <section className="rounded-lg border border-gray-200 p-6">
-        <h2 className="font-semibold mb-4">項目を追加</h2>
-        <form action={createItem} className="grid gap-4 sm:grid-cols-2">
-          <CategoryField />
+      {canEdit && (
+        <section className="rounded-lg border border-gray-200 p-6">
+          <h2 className="font-semibold mb-4">項目を追加</h2>
+          <form action={createItem} className="grid gap-4 sm:grid-cols-2">
+            <CategoryField />
 
-          <label className="flex flex-col gap-1 text-sm">
-            対象
-            <input
-              name="subject"
-              required
-              className="rounded border border-gray-300 px-3 py-2"
-              placeholder="例: 山田太郎 / 品川500 あ 1234"
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              対象
+              <input
+                name="subject"
+                required
+                className="rounded border border-gray-300 px-3 py-2"
+                placeholder="例: 山田太郎 / 品川500 あ 1234"
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            詳細
-            <input
-              name="detail"
-              required
-              className="rounded border border-gray-300 px-3 py-2"
-              placeholder="例: F-1 OPT / 2tトラック"
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              詳細
+              <input
+                name="detail"
+                required
+                className="rounded border border-gray-300 px-3 py-2"
+                placeholder="例: F-1 OPT / 2tトラック"
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            有効期限(該当なしの場合は空欄)
-            <input
-              type="date"
-              name="expiryDate"
-              className="rounded border border-gray-300 px-3 py-2"
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm">
+              有効期限(該当なしの場合は空欄)
+              <input
+                type="date"
+                name="expiryDate"
+                className="rounded border border-gray-300 px-3 py-2"
+              />
+            </label>
 
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            メモ(任意)
-            <input
-              name="notes"
-              className="rounded border border-gray-300 px-3 py-2"
-              placeholder="補足があれば"
-            />
-          </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              メモ(任意)
+              <input
+                name="notes"
+                className="rounded border border-gray-300 px-3 py-2"
+                placeholder="補足があれば"
+              />
+            </label>
 
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              追加する
-            </button>
-          </div>
-        </form>
-      </section>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                追加する
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="rounded-lg border border-gray-200 p-6">
         <h2 className="font-semibold mb-4">一覧</h2>
@@ -113,7 +109,7 @@ export default async function Home() {
                   <th className="py-2 pr-4">詳細</th>
                   <th className="py-2 pr-4">状態</th>
                   <th className="py-2 pr-4">メモ</th>
-                  <th className="py-2"></th>
+                  {canEdit && <th className="py-2"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -134,17 +130,19 @@ export default async function Home() {
                       <td className="py-2 pr-4 text-gray-500">
                         {item.notes ?? ""}
                       </td>
-                      <td className="py-2 text-right">
-                        <form action={deleteItem}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <button
-                            type="submit"
-                            className="text-xs text-gray-400 hover:text-red-600"
-                          >
-                            削除
-                          </button>
-                        </form>
-                      </td>
+                      {canEdit && (
+                        <td className="py-2 text-right">
+                          <form action={deleteItem}>
+                            <input type="hidden" name="id" value={item.id} />
+                            <button
+                              type="submit"
+                              className="text-xs text-gray-400 hover:text-red-600"
+                            >
+                              削除
+                            </button>
+                          </form>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

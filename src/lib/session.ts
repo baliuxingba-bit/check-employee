@@ -2,12 +2,14 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
+export type Role = "viewer" | "editor";
+
 const encodedKey = new TextEncoder().encode(process.env.SESSION_SECRET?.trim());
 
-export async function createSession() {
+export async function createSession(role: Role) {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  const session = await new SignJWT({ authenticated: true })
+  const session = await new SignJWT({ authenticated: true, role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -31,12 +33,21 @@ export async function deleteSession() {
 export async function verifySession() {
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
-  if (!session) return false;
+  if (!session) return null;
 
   try {
-    await jwtVerify(session, encodedKey, { algorithms: ["HS256"] });
-    return true;
+    const { payload } = await jwtVerify(session, encodedKey, {
+      algorithms: ["HS256"],
+    });
+    return payload.role === "editor" ? "editor" : "viewer";
   } catch {
-    return false;
+    return null;
+  }
+}
+
+export async function requireEditor() {
+  const role = await verifySession();
+  if (role !== "editor") {
+    throw new Error("この操作には編集権限が必要です");
   }
 }
