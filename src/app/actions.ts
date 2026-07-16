@@ -10,23 +10,26 @@ export async function logout() {
   redirect("/login");
 }
 
-export async function createEmployee(formData: FormData) {
-  const name = String(formData.get("name") ?? "").trim();
-  const employmentType = String(formData.get("employmentType") ?? "").trim();
-  const visaType = String(formData.get("visaType") ?? "").trim();
-  const visaExpiryRaw = String(formData.get("visaExpiry") ?? "").trim();
+export async function createItem(formData: FormData) {
+  const categorySelect = String(formData.get("category") ?? "").trim();
+  const categoryOther = String(formData.get("categoryOther") ?? "").trim();
+  const category = categorySelect === "その他" ? categoryOther : categorySelect;
+
+  const subject = String(formData.get("subject") ?? "").trim();
+  const detail = String(formData.get("detail") ?? "").trim();
+  const expiryDateRaw = String(formData.get("expiryDate") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
-  if (!name || !employmentType || !visaType) {
-    throw new Error("名前・雇用形態・ビザ種類は必須です");
+  if (!category || !subject || !detail) {
+    throw new Error("カテゴリ・対象・詳細は必須です");
   }
 
-  await prisma.employee.create({
+  await prisma.trackedItem.create({
     data: {
-      name,
-      employmentType,
-      visaType,
-      visaExpiry: visaExpiryRaw ? new Date(visaExpiryRaw) : null,
+      category,
+      subject,
+      detail,
+      expiryDate: expiryDateRaw ? new Date(expiryDateRaw) : null,
       notes: notes || null,
     },
   });
@@ -34,11 +37,11 @@ export async function createEmployee(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function deleteEmployee(formData: FormData) {
+export async function deleteItem(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
-  await prisma.employee.delete({ where: { id } });
+  await prisma.trackedItem.delete({ where: { id } });
 
   revalidatePath("/");
 }
