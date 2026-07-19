@@ -3,6 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireEditor } from "@/lib/session";
+import { notifyTeams } from "@/lib/teams";
+
+function formatDate(date: Date) {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
 
 export async function createAbsence(formData: FormData) {
   await requireEditor();
@@ -37,6 +42,12 @@ export async function createAbsence(formData: FormData) {
       notes: notes || null,
     })),
   });
+
+  const period =
+    dates.length === 1
+      ? formatDate(startDate)
+      : `${formatDate(startDate)}〜${formatDate(endDate)}`;
+  await notifyTeams(`${employeeName}さんが ${period} ${type} で登録されました。`);
 
   revalidatePath("/absences");
 }
