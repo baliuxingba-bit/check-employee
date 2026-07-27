@@ -88,6 +88,32 @@ export async function addEmployee(formData: FormData) {
   revalidatePath("/absences");
 }
 
+export async function updateEmployee(formData: FormData) {
+  await requireEditor();
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  const affiliation = String(formData.get("affiliation") ?? "").trim();
+  const joinDateRaw = String(formData.get("joinDate") ?? "").trim();
+  const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+
+  await prisma.employee.update({
+    where: { id },
+    data: {
+      name,
+      affiliation: affiliation || null,
+      joinDate: joinDateRaw ? new Date(joinDateRaw) : null,
+      birthDate: birthDateRaw ? new Date(birthDateRaw) : null,
+    },
+  });
+
+  revalidatePath("/absences");
+}
+
 function parseCsvLine(line: string): string[] {
   const cells: string[] = [];
   let cur = "";

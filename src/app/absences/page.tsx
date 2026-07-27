@@ -3,6 +3,7 @@ import {
   createAbsence,
   deleteAbsence,
   addEmployee,
+  updateEmployee,
   deleteEmployee,
   importEmployeesCsv,
 } from "./actions";
@@ -36,6 +37,113 @@ function formatDate(date: Date) {
   ).padStart(2, "0")}`;
 }
 
+type AbsenceRecord = {
+  id: string;
+  employeeName: string;
+  date: Date;
+  type: string;
+  notes: string | null;
+};
+
+function buildMonthView(year: number, monthNum: number, allRecords: AbsenceRecord[]) {
+  const monthStart = new Date(year, monthNum - 1, 1);
+  const records = allRecords.filter(
+    (r) => r.date.getFullYear() === year && r.date.getMonth() === monthNum - 1
+  );
+
+  const recordsByDay = new Map<number, AbsenceRecord[]>();
+  for (const record of records) {
+    const day = record.date.getDate();
+    if (!recordsByDay.has(day)) recordsByDay.set(day, []);
+    recordsByDay.get(day)!.push(record);
+  }
+
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+  const startWeekday = monthStart.getDay(); // Sunday = 0
+  const calendarCells: (number | null)[] = [
+    ...Array(startWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (calendarCells.length % 7 !== 0) calendarCells.push(null);
+
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === monthNum;
+
+  return { year, monthNum, calendarCells, recordsByDay, isCurrentMonth, today };
+}
+
+function MonthCalendar({
+  view,
+  canEdit,
+}: {
+  view: ReturnType<typeof buildMonthView>;
+  canEdit: boolean;
+}) {
+  const { year, monthNum, calendarCells, recordsByDay, isCurrentMonth, today } = view;
+
+  return (
+    <div>
+      <h3 className="font-semibold mb-3">
+        {year}年{monthNum}月
+      </h3>
+      <div className="overflow-x-auto">
+        <div className="min-w-[560px]">
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {WEEKDAYS.map((w, i) => (
+              <div
+                key={w}
+                className={`py-1.5 text-center text-sm font-semibold rounded ${WEEKDAY_HEADER_COLORS[i]}`}
+              >
+                {w}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {calendarCells.map((day, i) => {
+              const dayRecords = day ? recordsByDay.get(day) ?? [] : [];
+              const isToday = isCurrentMonth && day === today.getDate();
+              return (
+                <div
+                  key={i}
+                  className={`min-h-[90px] rounded border p-1.5 ${
+                    day ? "border-gray-200" : "border-transparent"
+                  } ${isToday ? "ring-2 ring-black" : ""}`}
+                >
+                  {day && (
+                    <>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold text-gray-700">{day}</span>
+                        {dayRecords.length > 0 && (
+                          <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                            {dayRecords.length}人
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        {dayRecords.map((r) => (
+                          <span
+                            key={r.id}
+                            className={`truncate rounded px-1 py-0.5 text-[11px] leading-tight ${
+                              TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                            title={canEdit ? `${r.employeeName}・${r.type}` : r.type}
+                          >
+                            {canEdit ? `${r.employeeName}(${r.type})` : r.type}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function AbsencesPage({
   searchParams,
 }: {
@@ -51,34 +159,29 @@ export default async function AbsencesPage({
   const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : defaultMonth;
   const [year, monthNum] = month.split("-").map(Number);
 
-  const monthStart = new Date(year, monthNum - 1, 1);
-  const monthEnd = new Date(year, monthNum, 1);
+  const rangeStart = new Date(year, monthNum - 1, 1);
+  const rangeEnd = new Date(year, monthNum + 1, 1); // end of the following month
 
   const records = await prisma.absenceRecord.findMany({
-    where: { date: { gte: monthStart, lt: monthEnd } },
+    where: { date: { gte: rangeStart, lt: rangeEnd } },
     orderBy: [{ date: "asc" }, { employeeName: "asc" }],
   });
+
+  const listRecords = records.filter(
+    (r) => r.date.getFullYear() === year && r.date.getMonth() === monthNum - 1
+  );
 
   const employees = canEdit
     ? await prisma.employee.findMany({ orderBy: { name: "asc" } })
     : [];
 
-  const recordsByDay = new Map<number, typeof records>();
-  for (const record of records) {
-    const day = record.date.getDate();
-    if (!recordsByDay.has(day)) recordsByDay.set(day, []);
-    recordsByDay.get(day)!.push(record);
-  }
-
-  const daysInMonth = new Date(year, monthNum, 0).getDate();
-  const startWeekday = monthStart.getDay(); // Sunday = 0
-  const calendarCells: (number | null)[] = [
-    ...Array(startWeekday).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (calendarCells.length % 7 !== 0) calendarCells.push(null);
-  const today = new Date();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === monthNum;
+  const nextMonthDate = new Date(year, monthNum, 1);
+  const currentView = buildMonthView(year, monthNum, records);
+  const nextView = buildMonthView(
+    nextMonthDate.getFullYear(),
+    nextMonthDate.getMonth() + 1,
+    records
+  );
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
@@ -89,7 +192,7 @@ export default async function AbsencesPage({
       />
 
       <section className="rounded-lg border border-gray-200 p-6">
-        <form className="flex items-end gap-3" action="/absences">
+        <form className="flex items-end gap-3 mb-6" action="/absences">
           <label className="flex flex-col gap-1 text-sm">
             対象月
             <input
@@ -106,6 +209,11 @@ export default async function AbsencesPage({
             表示
           </button>
         </form>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          <MonthCalendar view={currentView} canEdit={canEdit} />
+          <MonthCalendar view={nextView} canEdit={canEdit} />
+        </div>
       </section>
 
       {canEdit && (
@@ -191,6 +299,53 @@ export default async function AbsencesPage({
         </section>
       )}
 
+      <section className="rounded-lg border border-gray-200 p-6">
+        <h2 className="font-semibold mb-4">{month} 記録一覧</h2>
+
+        {listRecords.length === 0 ? (
+          <p className="text-sm text-gray-500">この月の記録はまだありません。</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <th className="py-2 pr-4">日付</th>
+                  <th className="py-2 pr-4">氏名</th>
+                  <th className="py-2 pr-4">区分</th>
+                  <th className="py-2 pr-4">メモ</th>
+                  {canEdit && <th className="py-2"></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {listRecords.map((record) => (
+                  <tr key={record.id} className="border-b border-gray-100">
+                    <td className="py-2 pr-4">{formatDate(record.date)}</td>
+                    <td className="py-2 pr-4 font-medium">
+                      {canEdit ? record.employeeName : "非公開"}
+                    </td>
+                    <td className="py-2 pr-4">{record.type}</td>
+                    <td className="py-2 pr-4 text-gray-500">{record.notes ?? ""}</td>
+                    {canEdit && (
+                      <td className="py-2 text-right">
+                        <form action={deleteAbsence}>
+                          <input type="hidden" name="id" value={record.id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-gray-400 hover:text-red-600"
+                          >
+                            削除
+                          </button>
+                        </form>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {canEdit && (
         <section className="rounded-lg border border-gray-200 p-6">
           <h2 className="font-semibold mb-4">社員名簿</h2>
@@ -220,7 +375,8 @@ export default async function AbsencesPage({
             </button>
           </form>
 
-          <form action={addEmployee} className="grid gap-3 mb-4 sm:grid-cols-2">
+          <h3 className="text-sm font-semibold mb-3">新規追加</h3>
+          <form action={addEmployee} className="grid gap-3 mb-8 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               氏名
               <input
@@ -267,154 +423,91 @@ export default async function AbsencesPage({
                 type="submit"
                 className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
               >
-                追加/更新
+                追加する
               </button>
             </div>
           </form>
+
           {employees.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
-                    <th className="py-2 pr-4">氏名</th>
-                    <th className="py-2 pr-4">所属</th>
-                    <th className="py-2 pr-4">入社日</th>
-                    <th className="py-2 pr-4">生年月日</th>
-                    <th className="py-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.map((e) => (
-                    <tr key={e.id} className="border-b border-gray-100">
-                      <td className="py-2 pr-4 font-medium">{e.name}</td>
-                      <td className="py-2 pr-4">{e.affiliation ?? ""}</td>
-                      <td className="py-2 pr-4">{e.joinDate ? formatDate(e.joinDate) : ""}</td>
-                      <td className="py-2 pr-4">{e.birthDate ? formatDate(e.birthDate) : ""}</td>
-                      <td className="py-2 text-right">
-                        <form action={deleteEmployee}>
-                          <input type="hidden" name="id" value={e.id} />
-                          <button
-                            type="submit"
-                            className="text-xs text-gray-400 hover:text-red-600"
-                          >
-                            削除
-                          </button>
-                        </form>
-                      </td>
+            <>
+              <h3 className="text-sm font-semibold mb-3">登録済み一覧(編集・削除)</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left text-gray-500">
+                      <th className="py-2 pr-2">氏名</th>
+                      <th className="py-2 pr-2">所属</th>
+                      <th className="py-2 pr-2">入社日</th>
+                      <th className="py-2 pr-2">生年月日</th>
+                      <th className="py-2"></th>
+                      <th className="py-2"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {employees.map((e) => (
+                      <tr key={e.id} className="border-b border-gray-100">
+                        <td colSpan={5} className="py-2">
+                          <form
+                            id={`employee-edit-${e.id}`}
+                            action={updateEmployee}
+                            className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 items-center"
+                          >
+                            <input type="hidden" name="id" value={e.id} />
+                            <input
+                              name="name"
+                              defaultValue={e.name}
+                              required
+                              className="rounded border border-gray-300 px-2 py-1"
+                            />
+                            <select
+                              name="affiliation"
+                              defaultValue={e.affiliation ?? ""}
+                              className="rounded border border-gray-300 px-2 py-1"
+                            >
+                              <option value="">未選択</option>
+                              <option value="八幸商事">八幸商事</option>
+                              <option value="日晴興業">日晴興業</option>
+                            </select>
+                            <input
+                              type="date"
+                              name="joinDate"
+                              defaultValue={e.joinDate ? formatDate(e.joinDate) : ""}
+                              className="rounded border border-gray-300 px-2 py-1"
+                            />
+                            <input
+                              type="date"
+                              name="birthDate"
+                              defaultValue={e.birthDate ? formatDate(e.birthDate) : ""}
+                              className="rounded border border-gray-300 px-2 py-1"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded bg-gray-800 px-3 py-1 text-xs font-medium text-white hover:bg-gray-700"
+                            >
+                              更新
+                            </button>
+                          </form>
+                        </td>
+                        <td className="py-2 text-right">
+                          <form action={deleteEmployee}>
+                            <input type="hidden" name="id" value={e.id} />
+                            <button
+                              type="submit"
+                              className="text-xs text-gray-400 hover:text-red-600"
+                            >
+                              削除
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
       )}
-
-      <section className="rounded-lg border border-gray-200 p-6">
-        <h2 className="font-semibold mb-4">{month} カレンダー</h2>
-
-        <div className="overflow-x-auto">
-          <div className="min-w-[700px]">
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {WEEKDAYS.map((w, i) => (
-                <div
-                  key={w}
-                  className={`py-1.5 text-center text-sm font-semibold rounded ${WEEKDAY_HEADER_COLORS[i]}`}
-                >
-                  {w}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {calendarCells.map((day, i) => {
-                const dayRecords = day ? recordsByDay.get(day) ?? [] : [];
-                const isToday = isCurrentMonth && day === today.getDate();
-                return (
-                  <div
-                    key={i}
-                    className={`min-h-[110px] rounded border p-1.5 ${
-                      day ? "border-gray-200" : "border-transparent"
-                    } ${isToday ? "ring-2 ring-black" : ""}`}
-                  >
-                    {day && (
-                      <>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-base font-bold text-gray-700">{day}</span>
-                          {dayRecords.length > 0 && (
-                            <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                              {dayRecords.length}人
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          {dayRecords.map((r) => (
-                            <span
-                              key={r.id}
-                              className={`truncate rounded px-1 py-0.5 text-[11px] leading-tight ${
-                                TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
-                              }`}
-                              title={canEdit ? `${r.employeeName}・${r.type}` : r.type}
-                            >
-                              {canEdit ? `${r.employeeName}(${r.type})` : r.type}
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-gray-200 p-6">
-        <h2 className="font-semibold mb-4">{month} 記録一覧</h2>
-
-        {records.length === 0 ? (
-          <p className="text-sm text-gray-500">この月の記録はまだありません。</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="py-2 pr-4">日付</th>
-                  <th className="py-2 pr-4">氏名</th>
-                  <th className="py-2 pr-4">区分</th>
-                  <th className="py-2 pr-4">メモ</th>
-                  {canEdit && <th className="py-2"></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.id} className="border-b border-gray-100">
-                    <td className="py-2 pr-4">{formatDate(record.date)}</td>
-                    <td className="py-2 pr-4 font-medium">
-                      {canEdit ? record.employeeName : "非公開"}
-                    </td>
-                    <td className="py-2 pr-4">{record.type}</td>
-                    <td className="py-2 pr-4 text-gray-500">{record.notes ?? ""}</td>
-                    {canEdit && (
-                      <td className="py-2 text-right">
-                        <form action={deleteAbsence}>
-                          <input type="hidden" name="id" value={record.id} />
-                          <button
-                            type="submit"
-                            className="text-xs text-gray-400 hover:text-red-600"
-                          >
-                            削除
-                          </button>
-                        </form>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
     </main>
   );
 }
