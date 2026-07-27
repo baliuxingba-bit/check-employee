@@ -10,16 +10,16 @@ import { AppHeader } from "../AppHeader";
 import { verifySession } from "@/lib/session";
 
 const ABSENCE_TYPES = ["有給", "欠勤", "遅刻", "早退", "半給"];
-const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 const WEEKDAY_HEADER_COLORS = [
+  "bg-red-500 text-white",
   "bg-black text-white",
   "bg-black text-white",
   "bg-black text-white",
   "bg-black text-white",
   "bg-black text-white",
   "bg-sky-300 text-gray-900",
-  "bg-red-500 text-white",
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -71,7 +71,7 @@ export default async function AbsencesPage({
   }
 
   const daysInMonth = new Date(year, monthNum, 0).getDate();
-  const startWeekday = (monthStart.getDay() + 6) % 7; // Monday = 0
+  const startWeekday = monthStart.getDay(); // Sunday = 0
   const calendarCells: (number | null)[] = [
     ...Array(startWeekday).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
