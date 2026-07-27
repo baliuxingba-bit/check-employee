@@ -88,6 +88,81 @@ export async function addEmployee(formData: FormData) {
   revalidatePath("/absences");
 }
 
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      cells.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur);
+  return cells;
+}
+
+export async function importEmployeesCsv(formData: FormData) {
+  await requireEditor();
+
+  const file = formData.get("csv");
+  if (!(file instanceof File)) return;
+
+  const text = await file.text();
+  const lines = text.split(/\r\n|\n|\r/).filter((l) => l.trim() !== "");
+  if (lines.length === 0) return;
+
+  const header = parseCsvLine(lines[0]).map((h) => h.trim());
+  const nameIdx = header.indexOf("name");
+  const affiliationIdx = header.indexOf("affiliation");
+  const joinDateIdx = header.indexOf("joinDate");
+  const birthDateIdx = header.indexOf("birthDate");
+
+  if (nameIdx === -1) {
+    throw new Error("CSVのヘッダーに name 列が見つかりません");
+  }
+
+  let count = 0;
+  for (const line of lines.slice(1)) {
+    const cells = parseCsvLine(line);
+    const name = (cells[nameIdx] ?? "").trim();
+    if (!name) continue;
+
+    const affiliation = affiliationIdx !== -1 ? (cells[affiliationIdx] ?? "").trim() : "";
+    const joinDateRaw = joinDateIdx !== -1 ? (cells[joinDateIdx] ?? "").trim() : "";
+    const birthDateRaw = birthDateIdx !== -1 ? (cells[birthDateIdx] ?? "").trim() : "";
+
+    const data = {
+      affiliation: affiliation || null,
+      joinDate: joinDateRaw ? new Date(joinDateRaw) : null,
+      birthDate: birthDateRaw ? new Date(birthDateRaw) : null,
+    };
+
+    await prisma.employee.upsert({
+      where: { name },
+      update: data,
+      create: { name, ...data },
+    });
+    count++;
+  }
+
+  revalidatePath("/absences");
+}
+
 export async function deleteEmployee(formData: FormData) {
   await requireEditor();
 

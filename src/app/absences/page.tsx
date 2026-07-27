@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { createAbsence, deleteAbsence, addEmployee, deleteEmployee } from "./actions";
+import {
+  createAbsence,
+  deleteAbsence,
+  addEmployee,
+  deleteEmployee,
+  importEmployeesCsv,
+} from "./actions";
 import { AppHeader } from "../AppHeader";
 import { verifySession } from "@/lib/session";
 
@@ -191,6 +197,29 @@ export default async function AbsencesPage({
           <p className="text-sm text-gray-500 mb-4">
             ここに登録しておくと、欠勤登録の氏名欄で苗字を入力するだけで候補が出ます。
           </p>
+
+          <form
+            action={importEmployeesCsv}
+            className="mb-6 flex flex-wrap items-end gap-3 rounded border border-dashed border-gray-300 p-4"
+          >
+            <label className="flex flex-col gap-1 text-sm">
+              CSV一括登録(name,affiliation,joinDate,birthDate の列)
+              <input
+                type="file"
+                name="csv"
+                accept=".csv,text/csv"
+                required
+                className="text-sm"
+              />
+            </label>
+            <button
+              type="submit"
+              className="rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+            >
+              CSVから一括登録
+            </button>
+          </form>
+
           <form action={addEmployee} className="grid gap-3 mb-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               氏名
