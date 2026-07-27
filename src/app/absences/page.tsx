@@ -191,34 +191,91 @@ export default async function AbsencesPage({
           <p className="text-sm text-gray-500 mb-4">
             ここに登録しておくと、欠勤登録の氏名欄で苗字を入力するだけで候補が出ます。
           </p>
-          <form action={addEmployee} className="flex gap-3 mb-4">
-            <input
-              name="name"
-              required
-              className="rounded border border-gray-300 px-3 py-2 flex-1"
-              placeholder="山田 太郎"
-            />
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              追加
-            </button>
+          <form action={addEmployee} className="grid gap-3 mb-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              氏名
+              <input
+                name="name"
+                required
+                className="rounded border border-gray-300 px-3 py-2"
+                placeholder="山田 太郎"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              所属
+              <select
+                name="affiliation"
+                defaultValue=""
+                className="rounded border border-gray-300 px-3 py-2"
+              >
+                <option value="">未選択</option>
+                <option value="八幸商事">八幸商事</option>
+                <option value="日晴興業">日晴興業</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              入社日
+              <input
+                type="date"
+                name="joinDate"
+                className="rounded border border-gray-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              生年月日
+              <input
+                type="date"
+                name="birthDate"
+                className="rounded border border-gray-300 px-3 py-2"
+              />
+            </label>
+
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                追加/更新
+              </button>
+            </div>
           </form>
           {employees.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {employees.map((e) => (
-                <form key={e.id} action={deleteEmployee} className="inline-flex">
-                  <input type="hidden" name="id" value={e.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700 hover:bg-red-100 hover:text-red-700"
-                    title="クリックで削除"
-                  >
-                    {e.name} ×
-                  </button>
-                </form>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                    <th className="py-2 pr-4">氏名</th>
+                    <th className="py-2 pr-4">所属</th>
+                    <th className="py-2 pr-4">入社日</th>
+                    <th className="py-2 pr-4">生年月日</th>
+                    <th className="py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((e) => (
+                    <tr key={e.id} className="border-b border-gray-100">
+                      <td className="py-2 pr-4 font-medium">{e.name}</td>
+                      <td className="py-2 pr-4">{e.affiliation ?? ""}</td>
+                      <td className="py-2 pr-4">{e.joinDate ? formatDate(e.joinDate) : ""}</td>
+                      <td className="py-2 pr-4">{e.birthDate ? formatDate(e.birthDate) : ""}</td>
+                      <td className="py-2 text-right">
+                        <form action={deleteEmployee}>
+                          <input type="hidden" name="id" value={e.id} />
+                          <button
+                            type="submit"
+                            className="text-xs text-gray-400 hover:text-red-600"
+                          >
+                            削除
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

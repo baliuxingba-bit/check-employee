@@ -69,10 +69,20 @@ export async function addEmployee(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
+  const affiliation = String(formData.get("affiliation") ?? "").trim();
+  const joinDateRaw = String(formData.get("joinDate") ?? "").trim();
+  const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+
+  const data = {
+    affiliation: affiliation || null,
+    joinDate: joinDateRaw ? new Date(joinDateRaw) : null,
+    birthDate: birthDateRaw ? new Date(birthDateRaw) : null,
+  };
+
   await prisma.employee.upsert({
     where: { name },
-    update: {},
-    create: { name },
+    update: data,
+    create: { name, ...data },
   });
 
   revalidatePath("/absences");

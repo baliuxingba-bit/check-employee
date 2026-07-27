@@ -34,7 +34,10 @@ model AbsenceRecord {
 }
 
 model Employee {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  name        String    @unique
+  affiliation String?
+  joinDate    DateTime?
+  birthDate   DateTime?
+  createdAt   DateTime  @default(now())
 }
