@@ -4,6 +4,25 @@ import { AppHeader } from "../AppHeader";
 import { verifySession } from "@/lib/session";
 
 const ABSENCE_TYPES = ["有給", "欠勤", "遅刻", "早退", "半給"];
+const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
+
+const WEEKDAY_HEADER_COLORS = [
+  "bg-pink-400",
+  "bg-orange-400",
+  "bg-amber-700",
+  "bg-green-500",
+  "bg-purple-400",
+  "bg-sky-500",
+  "bg-red-500",
+];
+
+const TYPE_COLORS: Record<string, string> = {
+  有給: "bg-green-100 text-green-700",
+  欠勤: "bg-red-100 text-red-700",
+  遅刻: "bg-yellow-100 text-yellow-700",
+  早退: "bg-yellow-100 text-yellow-700",
+  半給: "bg-blue-100 text-blue-700",
+};
 
 function formatDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
@@ -43,6 +62,23 @@ export default async function AbsencesPage({
     counts[record.type] = (counts[record.type] ?? 0) + 1;
   }
   const summaryRows = [...summary.entries()].sort(([a], [b]) => a.localeCompare(b, "ja"));
+
+  const recordsByDay = new Map<number, typeof records>();
+  for (const record of records) {
+    const day = record.date.getDate();
+    if (!recordsByDay.has(day)) recordsByDay.set(day, []);
+    recordsByDay.get(day)!.push(record);
+  }
+
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+  const startWeekday = (monthStart.getDay() + 6) % 7; // Monday = 0
+  const calendarCells: (number | null)[] = [
+    ...Array(startWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (calendarCells.length % 7 !== 0) calendarCells.push(null);
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === monthNum;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
@@ -186,6 +222,65 @@ export default async function AbsencesPage({
             </table>
           </div>
         )}
+      </section>
+
+      <section className="rounded-lg border border-gray-200 p-6">
+        <h2 className="font-semibold mb-4">{month} カレンダー</h2>
+
+        <div className="overflow-x-auto">
+          <div className="min-w-[700px]">
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {WEEKDAYS.map((w, i) => (
+                <div
+                  key={w}
+                  className={`py-1.5 text-center text-sm font-semibold text-white rounded ${WEEKDAY_HEADER_COLORS[i]}`}
+                >
+                  {w}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {calendarCells.map((day, i) => {
+                const dayRecords = day ? recordsByDay.get(day) ?? [] : [];
+                const isToday = isCurrentMonth && day === today.getDate();
+                return (
+                  <div
+                    key={i}
+                    className={`min-h-[110px] rounded border p-1.5 ${
+                      day ? "border-gray-200" : "border-transparent"
+                    } ${isToday ? "ring-2 ring-black" : ""}`}
+                  >
+                    {day && (
+                      <>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-base font-bold text-gray-700">{day}</span>
+                          {dayRecords.length > 0 && (
+                            <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                              {dayRecords.length}人
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          {dayRecords.map((r) => (
+                            <span
+                              key={r.id}
+                              className={`truncate rounded px-1 py-0.5 text-[11px] leading-tight ${
+                                TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
+                              }`}
+                              title={`${r.employeeName}・${r.type}`}
+                            >
+                              {r.employeeName}({r.type})
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-lg border border-gray-200 p-6">
