@@ -49,3 +49,29 @@ export async function deleteItem(formData: FormData) {
 
   revalidatePath("/");
 }
+
+export async function addCategory(formData: FormData) {
+  await requireEditor();
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  await prisma.category.upsert({
+    where: { name },
+    update: {},
+    create: { name },
+  });
+
+  revalidatePath("/");
+}
+
+export async function deleteCategory(formData: FormData) {
+  await requireEditor();
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await prisma.category.delete({ where: { id } });
+
+  revalidatePath("/");
+}

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { createItem, deleteItem } from "./actions";
+import { createItem, deleteItem, addCategory, deleteCategory } from "./actions";
 import { CategoryField } from "./CategoryField";
 import { AppHeader } from "./AppHeader";
 import { verifySession } from "@/lib/session";
@@ -30,6 +30,10 @@ export default async function Home() {
     orderBy: [{ expiryDate: "asc" }, { subject: "asc" }],
   });
 
+  const categories = canEdit
+    ? await prisma.category.findMany({ orderBy: { name: "asc" } })
+    : [];
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
       <AppHeader
@@ -42,7 +46,7 @@ export default async function Home() {
         <section className="rounded-lg border border-gray-200 p-6">
           <h2 className="font-semibold mb-4">項目を追加</h2>
           <form action={createItem} className="grid gap-4 sm:grid-cols-2">
-            <CategoryField />
+            <CategoryField customCategories={categories.map((c) => c.name)} />
 
             <label className="flex flex-col gap-1 text-sm">
               対象
@@ -91,6 +95,45 @@ export default async function Home() {
               </button>
             </div>
           </form>
+        </section>
+      )}
+
+      {canEdit && (
+        <section className="rounded-lg border border-gray-200 p-6">
+          <h2 className="font-semibold mb-4">カテゴリ管理</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            ここで追加したカテゴリは、上の「項目を追加」フォームのカテゴリ選択肢に表示されます。
+          </p>
+          <form action={addCategory} className="flex gap-3 mb-4">
+            <input
+              name="name"
+              required
+              className="rounded border border-gray-300 px-3 py-2 flex-1"
+              placeholder="例: 消防設備点検"
+            />
+            <button
+              type="submit"
+              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              追加
+            </button>
+          </form>
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <form key={c.id} action={deleteCategory} className="inline-flex">
+                  <input type="hidden" name="id" value={c.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700 hover:bg-red-100 hover:text-red-700"
+                    title="クリックで削除"
+                  >
+                    {c.name} ×
+                  </button>
+                </form>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

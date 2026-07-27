@@ -9,11 +9,15 @@ const PRESET_CATEGORIES = [
   "免許",
   "契約",
   "健康診断",
-  "その他",
 ];
 
-export function CategoryField() {
+export function CategoryField({ customCategories }: { customCategories: string[] }) {
   const [category, setCategory] = useState("");
+
+  const categories = [
+    ...PRESET_CATEGORIES,
+    ...customCategories.filter((c) => !PRESET_CATEGORIES.includes(c)),
+  ];
 
   return (
     <>
@@ -29,11 +33,12 @@ export function CategoryField() {
           <option value="" disabled>
             選択してください
           </option>
-          {PRESET_CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
+          <option value="その他">その他</option>
         </select>
       </label>
 

@@ -41,3 +41,9 @@ model Employee {
   birthDate   DateTime?
   createdAt   DateTime  @default(now())
 }
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
