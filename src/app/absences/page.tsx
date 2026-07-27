@@ -86,59 +86,55 @@ function MonthCalendar({
       <h3 className="font-semibold mb-3">
         {year}年{monthNum}月
       </h3>
-      <div className="overflow-x-auto">
-        <div className="min-w-[560px]">
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {WEEKDAYS.map((w, i) => (
-              <div
-                key={w}
-                className={`py-1.5 text-center text-sm font-semibold rounded ${WEEKDAY_HEADER_COLORS[i]}`}
-              >
-                {w}
-              </div>
-            ))}
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1">
+        {WEEKDAYS.map((w, i) => (
+          <div
+            key={w}
+            className={`py-1 text-center text-xs sm:text-sm font-semibold rounded ${WEEKDAY_HEADER_COLORS[i]}`}
+          >
+            {w}
           </div>
-          <div className="grid grid-cols-7 gap-1">
-            {calendarCells.map((day, i) => {
-              const dayRecords = day ? recordsByDay.get(day) ?? [] : [];
-              const isToday = isCurrentMonth && day === today.getDate();
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[90px] rounded border p-1.5 ${
-                    day ? "border-gray-200" : "border-transparent"
-                  } ${isToday ? "ring-2 ring-black" : ""}`}
-                >
-                  {day && (
-                    <>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-bold text-gray-700">{day}</span>
-                        {dayRecords.length > 0 && (
-                          <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                            {dayRecords.length}人
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        {dayRecords.map((r) => (
-                          <span
-                            key={r.id}
-                            className={`truncate rounded px-1 py-0.5 text-[11px] leading-tight ${
-                              TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
-                            }`}
-                            title={canEdit ? `${r.employeeName}・${r.type}` : r.type}
-                          >
-                            {canEdit ? `${r.employeeName}(${r.type})` : r.type}
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+        {calendarCells.map((day, i) => {
+          const dayRecords = day ? recordsByDay.get(day) ?? [] : [];
+          const isToday = isCurrentMonth && day === today.getDate();
+          return (
+            <div
+              key={i}
+              className={`min-h-[56px] sm:min-h-[90px] rounded border p-0.5 sm:p-1.5 overflow-hidden ${
+                day ? "border-gray-200" : "border-transparent"
+              } ${isToday ? "ring-2 ring-black" : ""}`}
+            >
+              {day && (
+                <>
+                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                    <span className="text-xs sm:text-sm font-bold text-gray-700">{day}</span>
+                    {dayRecords.length > 0 && (
+                      <span className="rounded-full bg-gray-800 px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[11px] font-semibold text-white">
+                        {dayRecords.length}人
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {dayRecords.map((r) => (
+                      <span
+                        key={r.id}
+                        className={`truncate rounded px-1 py-0.5 text-[9px] sm:text-[11px] leading-tight ${
+                          TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
+                        }`}
+                        title={canEdit ? `${r.employeeName}・${r.type}` : r.type}
+                      >
+                        {canEdit ? `${r.employeeName}(${r.type})` : r.type}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -210,7 +206,7 @@ export default async function AbsencesPage({
           </button>
         </form>
 
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="flex flex-col gap-8">
           <MonthCalendar view={currentView} canEdit={canEdit} />
           <MonthCalendar view={nextView} canEdit={canEdit} />
         </div>
