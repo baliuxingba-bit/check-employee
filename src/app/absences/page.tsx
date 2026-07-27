@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { createAbsence, deleteAbsence } from "./actions";
+import { createAbsence, deleteAbsence, addEmployee, deleteEmployee } from "./actions";
 import { AppHeader } from "../AppHeader";
 import { verifySession } from "@/lib/session";
 
@@ -7,13 +7,13 @@ const ABSENCE_TYPES = ["有給", "欠勤", "遅刻", "早退", "半給"];
 const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
 
 const WEEKDAY_HEADER_COLORS = [
-  "bg-pink-400",
-  "bg-orange-400",
-  "bg-amber-700",
-  "bg-green-500",
-  "bg-purple-400",
-  "bg-sky-500",
-  "bg-red-500",
+  "bg-black text-white",
+  "bg-black text-white",
+  "bg-black text-white",
+  "bg-black text-white",
+  "bg-black text-white",
+  "bg-sky-300 text-gray-900",
+  "bg-red-500 text-white",
 ];
 
 const TYPE_COLORS: Record<string, string> = {
@@ -52,6 +52,10 @@ export default async function AbsencesPage({
     where: { date: { gte: monthStart, lt: monthEnd } },
     orderBy: [{ date: "asc" }, { employeeName: "asc" }],
   });
+
+  const employees = canEdit
+    ? await prisma.employee.findMany({ orderBy: { name: "asc" } })
+    : [];
 
   const recordsByDay = new Map<number, typeof records>();
   for (const record of records) {
@@ -107,9 +111,16 @@ export default async function AbsencesPage({
               <input
                 name="employeeName"
                 required
+                list="employee-roster"
+                autoComplete="off"
                 className="rounded border border-gray-300 px-3 py-2"
-                placeholder="山田 太郎"
+                placeholder="苗字を入力すると候補が出ます"
               />
+              <datalist id="employee-roster">
+                {employees.map((e) => (
+                  <option key={e.id} value={e.name} />
+                ))}
+              </datalist>
             </label>
 
             <label className="flex flex-col gap-1 text-sm">
@@ -174,6 +185,45 @@ export default async function AbsencesPage({
         </section>
       )}
 
+      {canEdit && (
+        <section className="rounded-lg border border-gray-200 p-6">
+          <h2 className="font-semibold mb-4">社員名簿</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            ここに登録しておくと、欠勤登録の氏名欄で苗字を入力するだけで候補が出ます。
+          </p>
+          <form action={addEmployee} className="flex gap-3 mb-4">
+            <input
+              name="name"
+              required
+              className="rounded border border-gray-300 px-3 py-2 flex-1"
+              placeholder="山田 太郎"
+            />
+            <button
+              type="submit"
+              className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              追加
+            </button>
+          </form>
+          {employees.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {employees.map((e) => (
+                <form key={e.id} action={deleteEmployee} className="inline-flex">
+                  <input type="hidden" name="id" value={e.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700 hover:bg-red-100 hover:text-red-700"
+                    title="クリックで削除"
+                  >
+                    {e.name} ×
+                  </button>
+                </form>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="rounded-lg border border-gray-200 p-6">
         <h2 className="font-semibold mb-4">{month} カレンダー</h2>
 
@@ -183,7 +233,7 @@ export default async function AbsencesPage({
               {WEEKDAYS.map((w, i) => (
                 <div
                   key={w}
-                  className={`py-1.5 text-center text-sm font-semibold text-white rounded ${WEEKDAY_HEADER_COLORS[i]}`}
+                  className={`py-1.5 text-center text-sm font-semibold rounded ${WEEKDAY_HEADER_COLORS[i]}`}
                 >
                   {w}
                 </div>

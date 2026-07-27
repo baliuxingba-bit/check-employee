@@ -62,3 +62,29 @@ export async function deleteAbsence(formData: FormData) {
 
   revalidatePath("/absences");
 }
+
+export async function addEmployee(formData: FormData) {
+  await requireEditor();
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  await prisma.employee.upsert({
+    where: { name },
+    update: {},
+    create: { name },
+  });
+
+  revalidatePath("/absences");
+}
+
+export async function deleteEmployee(formData: FormData) {
+  await requireEditor();
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  await prisma.employee.delete({ where: { id } });
+
+  revalidatePath("/absences");
+}
