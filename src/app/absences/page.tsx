@@ -53,16 +53,6 @@ export default async function AbsencesPage({
     orderBy: [{ date: "asc" }, { employeeName: "asc" }],
   });
 
-  const summary = new Map<string, Record<string, number>>();
-  for (const record of records) {
-    if (!summary.has(record.employeeName)) {
-      summary.set(record.employeeName, {});
-    }
-    const counts = summary.get(record.employeeName)!;
-    counts[record.type] = (counts[record.type] ?? 0) + 1;
-  }
-  const summaryRows = [...summary.entries()].sort(([a], [b]) => a.localeCompare(b, "ja"));
-
   const recordsByDay = new Map<number, typeof records>();
   for (const record of records) {
     const day = record.date.getDate();
@@ -84,7 +74,7 @@ export default async function AbsencesPage({
     <main className="mx-auto max-w-4xl px-4 py-10 space-y-10">
       <AppHeader
         title="欠勤表"
-        description="有給・欠勤・遅刻・早退・半給を記録し、月別・人別に自動集計します。"
+        description="有給・欠勤・遅刻・早退・半給を記録し、カレンダーで一目で確認できます。"
         active="absences"
       />
 
@@ -185,46 +175,6 @@ export default async function AbsencesPage({
       )}
 
       <section className="rounded-lg border border-gray-200 p-6">
-        <h2 className="font-semibold mb-4">{month} 月別集計</h2>
-
-        {summaryRows.length === 0 ? (
-          <p className="text-sm text-gray-500">この月の記録はまだありません。</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="py-2 pr-4">氏名</th>
-                  {ABSENCE_TYPES.map((t) => (
-                    <th key={t} className="py-2 pr-4">
-                      {t}
-                    </th>
-                  ))}
-                  <th className="py-2 pr-4">合計</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summaryRows.map(([name, counts]) => {
-                  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-                  return (
-                    <tr key={name} className="border-b border-gray-100">
-                      <td className="py-2 pr-4 font-medium">{name}</td>
-                      {ABSENCE_TYPES.map((t) => (
-                        <td key={t} className="py-2 pr-4">
-                          {counts[t] ?? 0}
-                        </td>
-                      ))}
-                      <td className="py-2 pr-4 font-medium">{total}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-lg border border-gray-200 p-6">
         <h2 className="font-semibold mb-4">{month} カレンダー</h2>
 
         <div className="overflow-x-auto">
@@ -267,9 +217,9 @@ export default async function AbsencesPage({
                               className={`truncate rounded px-1 py-0.5 text-[11px] leading-tight ${
                                 TYPE_COLORS[r.type] ?? "bg-gray-100 text-gray-600"
                               }`}
-                              title={`${r.employeeName}・${r.type}`}
+                              title={canEdit ? `${r.employeeName}・${r.type}` : r.type}
                             >
-                              {r.employeeName}({r.type})
+                              {canEdit ? `${r.employeeName}(${r.type})` : r.type}
                             </span>
                           ))}
                         </div>
@@ -304,7 +254,9 @@ export default async function AbsencesPage({
                 {records.map((record) => (
                   <tr key={record.id} className="border-b border-gray-100">
                     <td className="py-2 pr-4">{formatDate(record.date)}</td>
-                    <td className="py-2 pr-4 font-medium">{record.employeeName}</td>
+                    <td className="py-2 pr-4 font-medium">
+                      {canEdit ? record.employeeName : "非公開"}
+                    </td>
                     <td className="py-2 pr-4">{record.type}</td>
                     <td className="py-2 pr-4 text-gray-500">{record.notes ?? ""}</td>
                     {canEdit && (
