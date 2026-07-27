@@ -6,7 +6,7 @@ const encodedKey = new TextEncoder().encode(process.env.SESSION_SECRET?.trim());
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/api/cron/deadline-notifications") {
     return NextResponse.next();
   }
 

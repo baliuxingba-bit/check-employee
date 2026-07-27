@@ -13,14 +13,16 @@ datasource db {
 }
 
 model TrackedItem {
-  id         String    @id @default(cuid())
-  category   String
-  subject    String
-  detail     String
-  expiryDate DateTime?
-  notes      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  category         String
+  subject          String
+  detail           String
+  expiryDate       DateTime?
+  notificationDate DateTime?
+  notifiedAt       DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model AbsenceRecord {

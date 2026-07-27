@@ -11,13 +11,21 @@ const PRESET_CATEGORIES = [
   "健康診断",
 ];
 
-export function CategoryField({ customCategories }: { customCategories: string[] }) {
-  const [category, setCategory] = useState("");
-
+export function CategoryField({
+  customCategories,
+  defaultValue = "",
+}: {
+  customCategories: string[];
+  defaultValue?: string;
+}) {
   const categories = [
     ...PRESET_CATEGORIES,
     ...customCategories.filter((c) => !PRESET_CATEGORIES.includes(c)),
   ];
+  const isKnownCategory = categories.includes(defaultValue);
+  const [category, setCategory] = useState(
+    isKnownCategory ? defaultValue : defaultValue ? "その他" : ""
+  );
 
   return (
     <>
@@ -48,6 +56,7 @@ export function CategoryField({ customCategories }: { customCategories: string[]
           <input
             name="categoryOther"
             required
+            defaultValue={!isKnownCategory ? defaultValue : ""}
             className="rounded border border-gray-300 px-3 py-2"
             placeholder="例: 消防設備点検"
           />

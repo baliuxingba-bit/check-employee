@@ -1,10 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { createItem, deleteItem, addCategory, deleteCategory } from "./actions";
+import { createItem, updateItem, deleteItem, addCategory, deleteCategory } from "./actions";
 import { CategoryField } from "./CategoryField";
 import { AppHeader } from "./AppHeader";
 import { verifySession } from "@/lib/session";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+
+function formatDateInput(date: Date | null) {
+  if (!date) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
+}
 
 function getStatus(expiryDate: Date | null) {
   if (!expiryDate) {
@@ -73,6 +80,15 @@ export default async function Home() {
               <input
                 type="date"
                 name="expiryDate"
+                className="rounded border border-gray-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              通知日(この日にTeamsへ自動通知)
+              <input
+                type="date"
+                name="notificationDate"
                 className="rounded border border-gray-300 px-3 py-2"
               />
             </label>
@@ -151,6 +167,7 @@ export default async function Home() {
                   <th className="py-2 pr-4">対象</th>
                   <th className="py-2 pr-4">詳細</th>
                   <th className="py-2 pr-4">状態</th>
+                  <th className="py-2 pr-4">通知日</th>
                   <th className="py-2 pr-4">メモ</th>
                   {canEdit && <th className="py-2"></th>}
                 </tr>
@@ -171,11 +188,73 @@ export default async function Home() {
                         </span>
                       </td>
                       <td className="py-2 pr-4 text-gray-500">
+                        {formatDateInput(item.notificationDate) || "-"}
+                      </td>
+                      <td className="py-2 pr-4 text-gray-500">
                         {item.notes ?? ""}
                       </td>
                       {canEdit && (
-                        <td className="py-2 text-right">
-                          <form action={deleteItem}>
+                        <td className="py-2 text-right whitespace-nowrap">
+                          <details className="inline-block text-left">
+                            <summary className="inline-block cursor-pointer text-xs text-gray-500 hover:text-black">
+                              編集
+                            </summary>
+                            <form
+                              action={updateItem}
+                              className="mt-3 grid gap-2 sm:grid-cols-2 rounded border border-gray-200 p-3"
+                            >
+                              <input type="hidden" name="id" value={item.id} />
+                              <CategoryField
+                                customCategories={categories.map((c) => c.name)}
+                                defaultValue={item.category}
+                              />
+                              <input
+                                name="subject"
+                                required
+                                defaultValue={item.subject}
+                                className="rounded border border-gray-300 px-2 py-1"
+                                placeholder="対象"
+                              />
+                              <input
+                                name="detail"
+                                required
+                                defaultValue={item.detail}
+                                className="rounded border border-gray-300 px-2 py-1"
+                                placeholder="詳細"
+                              />
+                              <label className="flex flex-col gap-1 text-xs text-gray-500">
+                                有効期限
+                                <input
+                                  type="date"
+                                  name="expiryDate"
+                                  defaultValue={formatDateInput(item.expiryDate)}
+                                  className="rounded border border-gray-300 px-2 py-1"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-500">
+                                通知日
+                                <input
+                                  type="date"
+                                  name="notificationDate"
+                                  defaultValue={formatDateInput(item.notificationDate)}
+                                  className="rounded border border-gray-300 px-2 py-1"
+                                />
+                              </label>
+                              <input
+                                name="notes"
+                                defaultValue={item.notes ?? ""}
+                                className="rounded border border-gray-300 px-2 py-1 sm:col-span-2"
+                                placeholder="メモ(任意)"
+                              />
+                              <button
+                                type="submit"
+                                className="rounded bg-gray-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 sm:col-span-2"
+                              >
+                                更新する
+                              </button>
+                            </form>
+                          </details>
+                          <form action={deleteItem} className="inline-block ml-2">
                             <input type="hidden" name="id" value={item.id} />
                             <button
                               type="submit"
