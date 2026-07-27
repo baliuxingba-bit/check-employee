@@ -47,7 +47,7 @@ export async function createAbsence(formData: FormData) {
     dates.length === 1
       ? formatDate(startDate)
       : `${formatDate(startDate)}〜${formatDate(endDate)}`;
-  await notifyTeams(`${employeeName}さんが ${period} ${type} で登録されました。`);
+  await notifyTeams(`欠勤表に新しい登録がありました(${period}・${type})。詳細はアプリでご確認ください。`);
 
   revalidatePath("/absences");
 }
