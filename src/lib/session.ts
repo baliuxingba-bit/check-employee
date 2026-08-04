@@ -51,3 +51,11 @@ export async function requireEditor() {
     throw new Error("この操作には編集権限が必要です");
   }
 }
+
+export async function requireAuthenticated() {
+  const role = await verifySession();
+  if (!role) {
+    throw new Error("ログインが必要です");
+  }
+  return role;
+}

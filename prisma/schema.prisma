@@ -49,3 +49,24 @@ model Category {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+model ReportField {
+  id        String   @id @default(cuid())
+  label     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model ReportRecipient {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model DailyReport {
+  id           String   @id @default(cuid())
+  employeeName String
+  date         DateTime
+  content      String
+  extraFields  Json?
+  createdAt    DateTime @default(now())
+}

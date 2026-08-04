@@ -8,7 +8,7 @@ export function AppHeader({
 }: {
   title: string;
   description: string;
-  active: "deadlines" | "absences";
+  active: "deadlines" | "absences" | "reports";
 }) {
   return (
     <header className="flex items-start justify-between">
@@ -35,6 +35,16 @@ export function AppHeader({
             }
           >
             欠勤表
+          </Link>
+          <Link
+            href="/reports"
+            className={
+              active === "reports"
+                ? "font-semibold text-black"
+                : "text-gray-400 hover:text-gray-700"
+            }
+          >
+            日報
           </Link>
         </nav>
       </div>
