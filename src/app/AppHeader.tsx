@@ -36,6 +36,12 @@ export function AppHeader({
           >
             欠勤表
           </Link>
+          <a
+            href="https://daily-report-omega-dusky.vercel.app"
+            className="text-gray-400 hover:text-gray-700"
+          >
+            日報 ↗
+          </a>
         </nav>
       </div>
       <form action={logout}>
